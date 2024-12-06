@@ -102,7 +102,7 @@
         // Загружаем вопросы с GitHub
         async function loadQuestions() {
             const questionsUrls = [
-                "https://github.com/loliloshka777/Quiz-Time/blob/main/questions.json",
+                "https://github.com/loliloshka777/Quiz-Time/blob/main/questions.json"
             ];
 
             for (const url of questionsUrls) {
@@ -114,11 +114,22 @@
                     console.error(`Ошибка загрузки: ${url}`);
                 }
             }
+
+            // Если вопросы не загружены, выводим сообщение
+            if (questions.length === 0) {
+                alert("Ошибка загрузки вопросов. Попробуйте позже.");
+            }
         }
 
         // Старт игры
         async function startQuiz() {
             await loadQuestions(); // Загружаем вопросы перед началом
+
+            if (questions.length === 0) {
+                alert("Ошибка загрузки вопросов.");
+                return;
+            }
+
             currentQuestion = 0;
             score = 0;
             showQuestion();
@@ -142,7 +153,7 @@
                 const button = document.createElement("button");
                 button.classList.add("answer-button");
                 button.textContent = answer;
-                button.onclick = () => checkAnswer(answer);
+                button.onclick = () => checkAnswer(answer); // Привязка события
                 answersContainer.appendChild(button);
             });
         }
