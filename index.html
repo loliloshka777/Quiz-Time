@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuizTime Game</title>
     <style>
+        /* Стили остаются те же */
         * {
             margin: 0;
             padding: 0;
@@ -94,37 +95,40 @@
     <footer>© 2024 QuizTime</footer>
 
     <script>
-        const questions = [
-            {
-                question: "Какой язык программирования используется для создания веб-страниц?",
-                answers: ["Java", "Python", "JavaScript", "C++"],
-                correctAnswer: "JavaScript"
-            },
-            {
-                question: "Что такое HTML?",
-                answers: ["Язык программирования", "Язык разметки", "Текстовый редактор", "Система управления базами данных"],
-                correctAnswer: "Язык разметки"
-            },
-            {
-                question: "Что такое CSS?",
-                answers: ["Язык программирования", "Язык стилей", "Язык разметки", "База данных"],
-                correctAnswer: "Язык стилей"
-            }
-        ];
-
+        let questions = [];
         let currentQuestion = 0;
         let score = 0;
 
-        function startQuiz() {
+        // Загружаем вопросы с GitHub
+        async function loadQuestions() {
+            const questionsUrls = [
+                "https://github.com/loliloshka777/Quiz-Time/blob/main/questions.json",
+            ];
+
+            for (const url of questionsUrls) {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    questions = [...questions, ...data.questions];
+                } else {
+                    console.error(`Ошибка загрузки: ${url}`);
+                }
+            }
+        }
+
+        // Старт игры
+        async function startQuiz() {
+            await loadQuestions(); // Загружаем вопросы перед началом
             currentQuestion = 0;
             score = 0;
             showQuestion();
         }
 
+        // Показать вопрос
         function showQuestion() {
             const questionElement = document.getElementById("question");
             const answersContainer = document.querySelector(".answers");
-            
+
             if (currentQuestion >= questions.length) {
                 showResult();
                 return;
@@ -132,7 +136,7 @@
 
             const currentQ = questions[currentQuestion];
             questionElement.textContent = currentQ.question;
-            
+
             answersContainer.innerHTML = "";
             currentQ.answers.forEach(answer => {
                 const button = document.createElement("button");
@@ -143,6 +147,7 @@
             });
         }
 
+        // Проверить ответ
         function checkAnswer(answer) {
             const currentQ = questions[currentQuestion];
             if (answer === currentQ.correctAnswer) {
@@ -152,6 +157,7 @@
             showQuestion();
         }
 
+        // Показать результат
         function showResult() {
             const questionElement = document.getElementById("question");
             const answersContainer = document.querySelector(".answers");
