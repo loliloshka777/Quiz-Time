@@ -18,9 +18,26 @@
     </style>
 </head>
 <body>
-    <h1>Добро пожаловать в мини-приложение Telegram!</h1>
+    <h1>Добро пожаловать!</h1>
+    <p id="greeting">Загрузка данных...</p>
     <button onclick="showAlert()">Нажми меня</button>
+
     <script>
+        // Получаем объект Telegram Web App
+        const tg = window.Telegram.WebApp;
+
+        // Доступ к информации о пользователе
+        const user = tg.initDataUnsafe.user;
+
+        // Отображаем приветствие
+        const greetingElement = document.getElementById('greeting');
+        if (user) {
+            greetingElement.textContent = `Привет, ${user.first_name}!`;
+        } else {
+            greetingElement.textContent = "Привет, Гость!";
+        }
+
+        // Пример действия на кнопке
         function showAlert() {
             alert("Привет из мини-приложения!");
         }
