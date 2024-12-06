@@ -11,8 +11,8 @@
             box-sizing: border-box;
         }
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa, #ffffff);
             color: #333;
             display: flex;
             flex-direction: column;
@@ -22,65 +22,85 @@
         }
         header {
             width: 100%;
-            background-color: #0088cc;
+            background: linear-gradient(135deg, #0088cc, #005f99);
             color: white;
             text-align: center;
-            padding: 15px 0;
+            padding: 20px 0;
             font-size: 24px;
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
         }
         .container {
             width: 90%;
             max-width: 400px;
-            margin-top: 20px;
+            margin-top: 30px;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .greeting {
-            font-size: 18px;
-            margin-bottom: 15px;
+            padding: 25px 20px;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
+        .greeting {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #007bb5;
+            font-weight: bold;
+        }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            text-align: left;
         }
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-size: 14px;
+            font-weight: bold;
+            color: #555;
         }
         .form-group input, .form-group textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px 15px;
             font-size: 14px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 10px;
             outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #007bb5;
+            box-shadow: 0 0 8px rgba(0, 123, 181, 0.2);
         }
         .form-group textarea {
             resize: none;
-            height: 80px;
+            height: 100px;
         }
         button {
             width: 100%;
-            padding: 12px;
-            background-color: #0088cc;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #007bb5, #005f99);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s ease, transform 0.2s ease;
         }
         button:hover {
-            background-color: #007bb5;
+            background: linear-gradient(135deg, #005f99, #007bb5);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
         footer {
             width: 100%;
             text-align: center;
-            padding: 10px 0;
+            padding: 15px 0;
             margin-top: auto;
             font-size: 12px;
             color: #666;
@@ -88,7 +108,7 @@
     </style>
 </head>
 <body>
-    <header>Моё Мини-Приложение</header>
+    <header>Telegram Mini App</header>
 
     <div class="container">
         <p class="greeting" id="greeting">Привет, Гость!</p>
@@ -99,14 +119,14 @@
         </div>
 
         <div class="form-group">
-            <label for="message">Сообщение:</label>
+            <label for="message">Ваше сообщение:</label>
             <textarea id="message" placeholder="Введите сообщение"></textarea>
         </div>
 
         <button onclick="sendData()">Отправить</button>
     </div>
 
-    <footer>Telegram Web App © 2024</footer>
+    <footer>© 2024 Telegram Web App</footer>
 
     <script>
         // Инициализация Web App
