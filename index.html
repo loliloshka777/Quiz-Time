@@ -108,7 +108,9 @@
 
         // Загружаем вопросы из удаленного файла JSON
         async function loadQuestions() {
-            const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/main/questions.json";
+            const questionsUrls = [
+    "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/main/questions.json"
+];
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
