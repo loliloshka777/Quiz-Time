@@ -21,6 +21,16 @@
     <h1>Добро пожаловать!</h1>
     <p id="greeting">Загрузка данных...</p>
     <button onclick="showAlert()">Нажми меня</button>
+    <button onclick="sendData()">Отправить данные боту</button>
+
+<script>
+    function sendData() {
+        // Пример отправки данных в Telegram
+        tg.sendData("Привет от мини-приложения!");
+        alert("Данные отправлены боту!");
+    }
+</script>
+
 
     <script>
         // Получаем объект Telegram Web App
