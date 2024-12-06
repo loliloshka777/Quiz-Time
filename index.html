@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizTime Game</title>
+    <title>Telegram Web App</title>
     <style>
         * {
             margin: 0;
@@ -42,32 +42,58 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        .question {
-            font-size: 18px;
+        .greeting {
+            font-size: 20px;
             margin-bottom: 20px;
             color: #d86f2d;
             font-weight: bold;
         }
-        .answers {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
         }
-        .answer-button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #f4a261, #e76f51);
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #6d5e4f;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #f4a261;
+            box-shadow: 0 0 8px rgba(244, 162, 97, 0.2);
+        }
+        .form-group textarea {
+            resize: none;
+            height: 100px;
+        }
+        button {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #e76f51, #f4a261);
             color: white;
             border: none;
             border-radius: 10px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
             transition: background 0.3s ease, transform 0.2s ease;
         }
-        .answer-button:hover {
-            background: linear-gradient(135deg, #e76f51, #f4a261);
+        button:hover {
+            background: linear-gradient(135deg, #f4a261, #e76f51);
             transform: translateY(-2px);
         }
-        .answer-button:active {
+        button:active {
             transform: translateY(0);
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
@@ -79,123 +105,53 @@
             font-size: 12px;
             color: #6d5e4f;
         }
-        #timer {
-            font-size: 24px;
-            color: #e76f51;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
-    <header>QuizTime: Викторина</header>
+    <header>Уютное Приложение</header>
 
-    <div class="container" id="quiz-container">
-        <p class="question" id="question">Готовы начать квиз?</p>
-        <div class="answers">
-            <button class="answer-button" onclick="startQuiz()">Да, начинаем!</button>
+    <div class="container">
+        <p class="greeting" id="greeting">Привет, Гость!</p>
+
+        <div class="form-group">
+            <label for="name">Ваше имя:</label>
+            <input type="text" id="name" placeholder="Введите имя">
         </div>
-        <div id="timer"></div> <!-- Отображение таймера -->
+
+        <div class="form-group">
+            <label for="message">Ваше сообщение:</label>
+            <textarea id="message" placeholder="Введите сообщение"></textarea>
+        </div>
+
+        <button onclick="sendData()">Отправить</button>
     </div>
 
-    <footer>© 2024 QuizTime</footer>
+    <footer>© 2024 Уютное Приложение</footer>
 
     <script>
-        let questions = [];
-        let currentQuestion = 0;
-        let score = 0;
-        let timer;
-        let timeLeft = 60; // Таймер на 1 минуту
+        // Инициализация Web App
+        const tg = window.Telegram.WebApp;
 
-        // Загружаем вопросы из удаленного файла JSON
-        async function loadQuestions() {
-            const questionsUrls = [
-    "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/main/questions.json"
-];
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                questions = data.questions;
-                console.log("Загруженные вопросы:", questions); // Логируем вопросы
-            } else {
-                alert("Ошибка загрузки вопросов. Попробуйте позже.");
-            }
+        // Установка приветствия с именем пользователя
+        const user = tg.initDataUnsafe.user;
+        const greetingElement = document.getElementById('greeting');
+        if (user) {
+            greetingElement.textContent = `Привет, ${user.first_name}!`;
         }
 
-        // Старт игры
-        async function startQuiz() {
-            await loadQuestions(); // Загружаем вопросы перед началом
+        // Отправка данных в Telegram
+        function sendData() {
+            const name = document.getElementById('name').value;
+            const message = document.getElementById('message').value;
 
-            if (questions.length === 0) {
-                alert("Ошибка загрузки вопросов.");
+            if (!name || !message) {
+                alert("Заполните все поля!");
                 return;
             }
 
-            currentQuestion = 0;
-            score = 0;
-            timeLeft = 60; // Перезапускаем таймер
-            startTimer(); // Запускаем таймер
-            showQuestion();
-        }
-
-        // Запускаем таймер
-        function startTimer() {
-            const timerElement = document.getElementById("timer");
-            timer = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(timer); // Останавливаем таймер
-                    showResult(); // Завершаем игру, если время истекло
-                } else {
-                    timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
-                    timeLeft--;
-                }
-            }, 1000); // Каждую секунду
-        }
-
-        // Показать вопрос
-        function showQuestion() {
-            const questionElement = document.getElementById("question");
-            const answersContainer = document.querySelector(".answers");
-
-            if (currentQuestion >= questions.length) {
-                showResult();
-                return;
-            }
-
-            const currentQ = questions[currentQuestion];
-            questionElement.textContent = currentQ.question;
-
-            answersContainer.innerHTML = "";
-            currentQ.answers.forEach(answer => {
-                const button = document.createElement("button");
-                button.classList.add("answer-button");
-                button.textContent = answer;
-                button.onclick = () => checkAnswer(answer); // Привязка события
-                answersContainer.appendChild(button);
-            });
-        }
-
-        // Проверить ответ
-        function checkAnswer(answer) {
-            const currentQ = questions[currentQuestion];
-            if (answer === currentQ.correctAnswer) {
-                score++;
-            }
-            currentQuestion++;
-            showQuestion();
-        }
-
-        // Показать результат
-        function showResult() {
-            const questionElement = document.getElementById("question");
-            const answersContainer = document.querySelector(".answers");
-
-            questionElement.textContent = `Ваш результат: ${score} из ${questions.length} правильных ответов!`;
-            answersContainer.innerHTML = "";
-            const retryButton = document.createElement("button");
-            retryButton.classList.add("answer-button");
-            retryButton.textContent = "Попробовать снова";
-            retryButton.onclick = startQuiz;
-            answersContainer.appendChild(retryButton);
+            const data = `Имя: ${name}, Сообщение: ${message}`;
+            tg.sendData(data); // Отправка данных в Telegram
+            alert("Данные отправлены!");
         }
     </script>
 </body>
