@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Web App</title>
+    <title>QuizTime Game</title>
     <style>
         * {
             margin: 0;
@@ -42,58 +42,32 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        .greeting {
-            font-size: 20px;
+        .question {
+            font-size: 18px;
             margin-bottom: 20px;
             color: #d86f2d;
             font-weight: bold;
         }
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
+        .answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #6d5e4f;
-        }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            font-size: 14px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            outline: none;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        .form-group input:focus, .form-group textarea:focus {
-            border-color: #f4a261;
-            box-shadow: 0 0 8px rgba(244, 162, 97, 0.2);
-        }
-        .form-group textarea {
-            resize: none;
-            height: 100px;
-        }
-        button {
-            width: 100%;
-            padding: 14px 20px;
-            background: linear-gradient(135deg, #e76f51, #f4a261);
+        .answer-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
             color: white;
             border: none;
             border-radius: 10px;
             font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
             transition: background 0.3s ease, transform 0.2s ease;
         }
-        button:hover {
-            background: linear-gradient(135deg, #f4a261, #e76f51);
+        .answer-button:hover {
+            background: linear-gradient(135deg, #e76f51, #f4a261);
             transform: translateY(-2px);
         }
-        button:active {
+        .answer-button:active {
             transform: translateY(0);
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
@@ -108,50 +82,87 @@
     </style>
 </head>
 <body>
-    <header>Уютное Приложение</header>
+    <header>QuizTime: Викторина</header>
 
-    <div class="container">
-        <p class="greeting" id="greeting">Привет, Гость!</p>
-
-        <div class="form-group">
-            <label for="name">Ваше имя:</label>
-            <input type="text" id="name" placeholder="Введите имя">
+    <div class="container" id="quiz-container">
+        <p class="question" id="question">Готовы начать квиз?</p>
+        <div class="answers">
+            <button class="answer-button" onclick="startQuiz()">Да, начинаем!</button>
         </div>
-
-        <div class="form-group">
-            <label for="message">Ваше сообщение:</label>
-            <textarea id="message" placeholder="Введите сообщение"></textarea>
-        </div>
-
-        <button onclick="sendData()">Отправить</button>
     </div>
 
-    <footer>© 2024 Уютное Приложение</footer>
+    <footer>© 2024 QuizTime</footer>
 
     <script>
-        // Инициализация Web App
-        const tg = window.Telegram.WebApp;
+        const questions = [
+            {
+                question: "Какой язык программирования используется для создания веб-страниц?",
+                answers: ["Java", "Python", "JavaScript", "C++"],
+                correctAnswer: "JavaScript"
+            },
+            {
+                question: "Что такое HTML?",
+                answers: ["Язык программирования", "Язык разметки", "Текстовый редактор", "Система управления базами данных"],
+                correctAnswer: "Язык разметки"
+            },
+            {
+                question: "Что такое CSS?",
+                answers: ["Язык программирования", "Язык стилей", "Язык разметки", "База данных"],
+                correctAnswer: "Язык стилей"
+            }
+        ];
 
-        // Установка приветствия с именем пользователя
-        const user = tg.initDataUnsafe.user;
-        const greetingElement = document.getElementById('greeting');
-        if (user) {
-            greetingElement.textContent = `Привет, ${user.first_name}!`;
+        let currentQuestion = 0;
+        let score = 0;
+
+        function startQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            showQuestion();
         }
 
-        // Отправка данных в Telegram
-        function sendData() {
-            const name = document.getElementById('name').value;
-            const message = document.getElementById('message').value;
-
-            if (!name || !message) {
-                alert("Заполните все поля!");
+        function showQuestion() {
+            const questionElement = document.getElementById("question");
+            const answersContainer = document.querySelector(".answers");
+            
+            if (currentQuestion >= questions.length) {
+                showResult();
                 return;
             }
 
-            const data = `Имя: ${name}, Сообщение: ${message}`;
-            tg.sendData(data); // Отправка данных в Telegram
-            alert("Данные отправлены!");
+            const currentQ = questions[currentQuestion];
+            questionElement.textContent = currentQ.question;
+            
+            answersContainer.innerHTML = "";
+            currentQ.answers.forEach(answer => {
+                const button = document.createElement("button");
+                button.classList.add("answer-button");
+                button.textContent = answer;
+                button.onclick = () => checkAnswer(answer);
+                answersContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(answer) {
+            const currentQ = questions[currentQuestion];
+            if (answer === currentQ.correctAnswer) {
+                score++;
+            }
+            currentQuestion++;
+            showQuestion();
+        }
+
+        function showResult() {
+            const questionElement = document.getElementById("question");
+            const answersContainer = document.querySelector(".answers");
+
+            questionElement.textContent = `Ваш результат: ${score} из ${questions.length} правильных ответов!`;
+            answersContainer.innerHTML = "";
+            const retryButton = document.createElement("button");
+            retryButton.classList.add("answer-button");
+            retryButton.textContent = "Попробовать снова";
+            retryButton.onclick = startQuiz;
+            answersContainer.appendChild(retryButton);
         }
     </script>
 </body>
