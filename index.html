@@ -106,15 +106,19 @@
         let timer;
         let timeLeft = 60; // Таймер на 1 минуту
 
-        // Загружаем вопросы из удаленного файла JSON
+        // Загружаем вопросы с GitHub
         async function loadQuestions() {
-            const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/main/questions.json";
+            const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/refs/heads/main/questions.json";
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                questions = data.questions;
-                console.log("Загруженные вопросы:", questions); // Логируем вопросы
+                questions = data.questions; // Заменили на правильный формат
             } else {
+                console.error("Ошибка загрузки вопросов.");
+            }
+
+            // Если вопросы не загружены, выводим сообщение
+            if (questions.length === 0) {
                 alert("Ошибка загрузки вопросов. Попробуйте позже.");
             }
         }
@@ -141,6 +145,7 @@
             timer = setInterval(() => {
                 if (timeLeft <= 0) {
                     clearInterval(timer); // Останавливаем таймер
+                    timerElement.textContent = "Время закончилось"; // Отображаем сообщение о завершении времени
                     showResult(); // Завершаем игру, если время истекло
                 } else {
                     timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
