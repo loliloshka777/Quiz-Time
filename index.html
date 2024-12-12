@@ -1,1 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizTime Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #fce3c9, #f8f1e5);
+            color: #4a3f35;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+        header {
+            width: 100%;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            color: white;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+            margin-top: 30px;
+            background: #fff8ed;
+            padding: 25px 20px;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .question {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #d86f2d;
+            font-weight: bold;
+        }
+        .answers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .answer-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+        .answer-button:hover {
+            background: linear-gradient(135deg, #e76f51, #f4a261);
+            transform: translateY(-2px);
+        }
+        .answer-button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: auto;
+            font-size: 12px;
+            color: #6d5e4f;
+        }
+        #timer {
+            font-size: 24px;
+            color: #e76f51;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>QuizTime: Викторина</header>
+
+    <div class="container" id="quiz-container">
+        <p class="question" id="question">Готовы начать квиз?</p>
+        <div class="answers">
+            <button class="answer-button" onclick="startQuiz()">Да, начинаем!</button>
+        </div>
+        <div id="timer"></div> <!-- Отображение таймера -->
+    </div>
+
+    <footer>© 2024 QuizTime</footer>
+
+    <script>
+        let questions = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let timer;
+        let timeLeft = 10; // Таймер на 1 минуту
+        let socket;
+
+        // Функция для подключения к WebSocket серверу
+        function connectToWebSocket() {
+            socket = new WebSocket('ws://localhost:8000/ws/quiz/'); // URL WebSocket сервера
+            socket.onopen = () => console.log("Подключение к серверу успешно!");
+            socket.onerror = (error) => console.error("Ошибка WebSocket:", error);
+            socket.onmessage = handleMessage;
+        }
+
+        // Обработка сообщений от сервера
+        function handleMessage(event) {
+            const message = JSON.parse(event.data);
+
+            if (message.type === "start") {
+                questions = message.questions; // Получаем вопросы от сервера
+                startTimer();
+                showQuestion();
+            }
+
+            if (message.type === "time") {
+                timeLeft = message.timeLeft; // Обновляем таймер, если сервер прислал обновление времени
+            }
+        }
+
+        // Старт игры
+        async function startQuiz() {
+            connectToWebSocket(); // Подключаемся к WebSocket серверу
+
+            // Отправляем серверу запрос на начало игры
+            socket.send(JSON.stringify({ type: "start_game" }));
+        }
+
+        // Запускаем таймер
+        function startTimer() {
+            const timerElement = document.getElementById("timer");
+            timer = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timer); // Останавливаем таймер
+                    timerElement.textContent = "Время закончилось"; // Отображаем сообщение о завершении времени
+                    showResult(); // Завершаем игру, если время истекло
+                } else {
+                    timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
+                    timeLeft--;
+                }
+            }, 1000); // Каждую секунду
+        }
+
+        // Показать вопрос
+        function showQuestion() {
+            const questionElement = document.getElementById("question");
+            const answersContainer = document.querySelector(".answers");
+
+            if (currentQuestion >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const currentQ = questions[currentQuestion];
+            questionElement.textContent = currentQ.question;
+
+            answersContainer.innerHTML = "";
+            currentQ.answers.forEach(answer => {
+                const button = document.createElement("button");
+                button.classList.add("answer-button");
+                button.textContent = answer;
+                button.onclick = () => checkAnswer(answer); // Привязка события
+                answersContainer.appendChild(button);
+            });
+        }
+
+        // Проверить ответ
+        function checkAnswer(answer) {
+            const currentQ = questions[currentQuestion];
+            if (answer === currentQ.correctAnswer) {
+                score++;
+            }
+            currentQuestion++;
+            showQuestion();
+        }
+
+        // Показать результат
+        function showResult() {
+            const questionElement = document.getElementById("question");
+            const answersContainer = document.querySelector(".answers");
+
+            questionElement.textContent = `Ваш результат: ${score} из ${questions.length} правильных ответов!`;
+            answersContainer.innerHTML = "";
+            const retryButton = document.createElement("button");
+            retryButton.classList.add("answer-button");
+            retryButton.textContent = "Попробовать снова";
+            retryButton.onclick = startQuiz;
+            answersContainer.appendChild(retryButton);
+        }
+    </script>
+</body>
+</html>
 
