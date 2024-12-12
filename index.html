@@ -93,6 +93,7 @@
         <p class="question" id="question">Готовы начать квиз?</p>
         <div class="answers">
             <button class="answer-button" onclick="startQuiz()">Да, начинаем!</button>
+            <button class="answer-button" onclick="findPlayer()">Найти игрока</button> <!-- Кнопка поиска -->
         </div>
         <div id="timer"></div> <!-- Отображение таймера -->
     </div>
@@ -100,57 +101,75 @@
     <footer>© 2024 QuizTime</footer>
 
     <script>
+        // Глобальные переменные для вопросов, состояния игры и WebSocket
         let questions = [];
         let currentQuestion = 0;
         let score = 0;
         let timer;
-        let timeLeft = 10; // Таймер на 1 минуту
+        let timeLeft = 10;
         let socket;
 
-        // Функция для подключения к WebSocket серверу
-        function connectToWebSocket() {
-            socket = new WebSocket('ws://localhost:8000/ws/quiz/'); // URL WebSocket сервера
-            socket.onopen = () => console.log("Подключение к серверу успешно!");
-            socket.onerror = (error) => console.error("Ошибка WebSocket:", error);
-            socket.onmessage = handleMessage;
+        // Функция для подключения к WebSocket
+        function connectWebSocket() {
+            socket = new WebSocket('ws://' + window.location.host + '/ws/quizgame/');
+
+            socket.onopen = function(event) {
+                console.log("WebSocket соединение установлено");
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.message) {
+                    console.log("Получено сообщение: ", data.message);
+                    // Тут будет логика, чтобы получать сообщения, например, вопросы, от другого игрока
+                }
+            };
+
+            socket.onerror = function(event) {
+                console.error("Ошибка WebSocket: ", event);
+            };
+
+            socket.onclose = function(event) {
+                console.log("WebSocket соединение закрыто");
+            };
         }
 
-        // Обработка сообщений от сервера
-        function handleMessage(event) {
-            const message = JSON.parse(event.data);
-
-            if (message.type === "start") {
-                questions = message.questions; // Получаем вопросы от сервера
-                startTimer();
-                showQuestion();
-            }
-
-            if (message.type === "time") {
-                timeLeft = message.timeLeft; // Обновляем таймер, если сервер прислал обновление времени
-            }
+        // Функция для поиска игрока
+        function findPlayer() {
+            connectWebSocket();
+            alert("Ищем других игроков...");
+            socket.send(JSON.stringify({ "message": "Ищем игрока..." }));
         }
 
-        // Старт игры
+        // Функция для начала игры
         async function startQuiz() {
-            connectToWebSocket(); // Подключаемся к WebSocket серверу
+            await loadQuestions();  // Загружаем вопросы перед началом
 
-            // Отправляем серверу запрос на начало игры
-            socket.send(JSON.stringify({ type: "start_game" }));
+            if (questions.length === 0) {
+                alert("Ошибка загрузки вопросов.");
+                return;
+            }
+
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 10;
+            startTimer();
+            showQuestion();
         }
 
-        // Запускаем таймер
+        // Таймер игры
         function startTimer() {
             const timerElement = document.getElementById("timer");
             timer = setInterval(() => {
                 if (timeLeft <= 0) {
-                    clearInterval(timer); // Останавливаем таймер
-                    timerElement.textContent = "Время закончилось"; // Отображаем сообщение о завершении времени
-                    showResult(); // Завершаем игру, если время истекло
+                    clearInterval(timer);
+                    timerElement.textContent = "Время закончилось";
+                    showResult();
                 } else {
                     timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
                     timeLeft--;
                 }
-            }, 1000); // Каждую секунду
+            }, 1000);
         }
 
         // Показать вопрос
@@ -171,15 +190,14 @@
                 const button = document.createElement("button");
                 button.classList.add("answer-button");
                 button.textContent = answer;
-                button.onclick = () => checkAnswer(answer); // Привязка события
+                button.onclick = () => checkAnswer(answer, currentQ.correctAnswer);
                 answersContainer.appendChild(button);
             });
         }
 
-        // Проверить ответ
-        function checkAnswer(answer) {
-            const currentQ = questions[currentQuestion];
-            if (answer === currentQ.correctAnswer) {
+        // Проверка ответа
+        function checkAnswer(answer, correctAnswer) {
+            if (answer === correctAnswer) {
                 score++;
             }
             currentQuestion++;
@@ -199,7 +217,18 @@
             retryButton.onclick = startQuiz;
             answersContainer.appendChild(retryButton);
         }
+
+        // Загружаем вопросы с GitHub
+        async function loadQuestions() {
+            const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/refs/heads/main/questions.json";
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                questions = data.questions;
+            } else {
+                console.error("Ошибка загрузки вопросов.");
+            }
+        }
     </script>
 </body>
 </html>
-
