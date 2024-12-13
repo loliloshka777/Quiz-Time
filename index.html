@@ -90,16 +90,16 @@
     <header>QuizTime: Викторина</header>
 
     <div class="container" id="quiz-container">
-        <p class="question" id="question">Готовы начать квиз?</p>
+        <p class="question" id="question">Добро пожаловать в QuizTime!</p>
         <div class="answers" id="answers">
-            <button class="answer-button" id="start-button">Выбрать сложность</button>
+            <button class="answer-button" id="start-button">Начать игру</button>
         </div>
+        <p id="timer" style="display: none;"></p> <!-- Таймер скрыт по умолчанию -->
     </div>
 
     <footer>© 2024 QuizTime</footer>
 
     <script>
-    // Инициализация всех переменных
     let questions = [];
     let currentQuestion = 0;
     let score = 0;
@@ -108,8 +108,17 @@
     let difficulty = 'easy'; // По умолчанию лёгкий
     let category = ''; // Для хранения выбранной категории
     let filteredQuestions = []; // Для хранения отфильтрованных вопросов
+    let quizFinished = false; // Для отслеживания завершения квиза
+    let startTime; // Для отслеживания начала таймера
+    let timerInterval;
 
-    // Загружаем вопросы с GitHub
+    // Время для каждой сложности
+    const difficultyTimes = {
+        easy: 10,
+        medium: 20,
+        hard: 30
+    };
+
     async function loadQuestions() {
         const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/refs/heads/main/questions.json";
         const response = await fetch(url);
@@ -120,15 +129,13 @@
             console.error("Ошибка загрузки вопросов.");
         }
 
-        // Если вопросы не загружены, выводим сообщение
         if (questions.length === 0) {
             alert("Ошибка загрузки вопросов. Попробуйте позже.");
         }
     }
 
-    // Инициализация игры
     async function startGame() {
-        await loadQuestions(); // Загружаем вопросы перед запуском игры
+        await loadQuestions();
         if (questions.length === 0) {
             alert("Ошибка загрузки вопросов.");
             return;
@@ -136,7 +143,6 @@
         chooseDifficulty();
     }
 
-    // Выбор сложности
     function chooseDifficulty() {
         const difficultyMenu = `
             <button class="answer-button" id="easy-button">Легкий</button>
@@ -146,13 +152,11 @@
         document.getElementById("question").innerHTML = 'Выберите сложность:';
         document.getElementById("answers").innerHTML = difficultyMenu;
 
-        // Привязываем события к кнопкам
         document.getElementById("easy-button").addEventListener('click', () => chooseCategory('easy'));
         document.getElementById("medium-button").addEventListener('click', () => chooseCategory('medium'));
         document.getElementById("hard-button").addEventListener('click', () => chooseCategory('hard'));
     }
 
-    // Выбор категории
     function chooseCategory(difficultyLevel) {
         difficulty = difficultyLevel;
         const categories = ['Наука', 'Спорт', 'История']; // Пример категорий
@@ -165,108 +169,123 @@
         document.getElementById("question").innerHTML = categoryMenu;
         document.getElementById("answers").innerHTML = '';
 
-        // Привязываем события к кнопкам категорий
         categories.forEach(cat => {
             document.getElementById(`category-${cat}`).addEventListener('click', () => startQuiz(difficulty, cat));
         });
     }
 
-    // Запуск игры
     async function startQuiz(difficultyLevel, chosenCategory) {
         category = chosenCategory;
         difficulty = difficultyLevel;
 
-        // Фильтруем вопросы по выбранной категории
-        filteredQuestions = questions.filter(q => q.category === category);
+        await loadQuestions();
 
-        // Если вопросов нет в выбранной категории
-        if (filteredQuestions.length === 0) {
-            alert(`Вопросы для категории ${category} не найдены!`);
+        if (questions.length === 0) {
+            alert("Ошибка загрузки вопросов.");
             return;
         }
 
-        // Очищаем предыдущие данные
         currentQuestion = 0;
         score = 0;
 
-        // Устанавливаем таймер в зависимости от сложности
-        switch (difficulty) {
-            case 'easy':
-                timeLeft = 20;
-                break;
-            case 'medium':
-                timeLeft = 15;
-                break;
-            case 'hard':
-                timeLeft = 10;
-                break;
+        filteredQuestions = questions.filter(q => q.category === category && q.difficulty === difficulty);
+        filteredQuestions = filteredQuestions.sort(() => Math.random() - 0.5);
+
+        if (filteredQuestions.length === 0) {
+            alert(`Вопросы для категории "${category}" и сложности "${difficulty}" не найдены!`);
+            return;
         }
 
-        startTimer();
+        document.getElementById("timer").style.display = "block"; // Показываем таймер
         showQuestion();
     }
 
-    // Запускаем таймер
     function startTimer() {
         const timerElement = document.getElementById("timer");
-        timer = setInterval(() => {
-            if (timeLeft <= 0) {
-                clearInterval(timer);
+        timeLeft = difficultyTimes[difficulty]; // Используем время в зависимости от сложности
+        startTime = Date.now(); // Записываем время начала
+        timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
+
+        function updateTimer() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const remainingTime = Math.max(timeLeft - elapsedTime, 0);
+            timerElement.textContent = `Оставшееся время: ${remainingTime} секунд`;
+
+            if (remainingTime <= 0) {
+                clearTimeout(timer);
                 timerElement.textContent = "Время закончилось";
-                showResult();
+                nextQuestion();
             } else {
-                timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
-                timeLeft--;
+                requestAnimationFrame(updateTimer); // Продолжаем обновлять таймер
             }
-        }, 1000);
+        }
+
+        requestAnimationFrame(updateTimer); // Запускаем анимацию обновления
     }
 
-    // Показать вопрос
     function showQuestion() {
-    const questionElement = document.getElementById("question");
-    const answersContainer = document.getElementById("answers");
-
-    if (currentQuestion >= filteredQuestions.length) {
-        showResult();
-        return;
-    }
-
-    const currentQ = filteredQuestions[currentQuestion]; // Берём текущий вопрос
-    questionElement.textContent = currentQ.question; // Используем currentQ.question
-
-    answersContainer.innerHTML = "";
-    currentQ.answers.forEach(answer => { // Используем currentQ.answers
-        const button = document.createElement("button");
-        button.classList.add("answer-button");
-        button.textContent = answer;
-        button.addEventListener('click', () => checkAnswer(answer));
-        answersContainer.appendChild(button);
-    });
-}
-
-function checkAnswer(answer) {
-    const currentQ = filteredQuestions[currentQuestion]; // Берём текущий вопрос
-    if (answer === currentQ.correctAnswer) { // Используем currentQ.correctAnswer
-        score++;
-    }
-    currentQuestion++;
-    showQuestion();
-}
-
-    // Показать результат
-    function showResult() {
         const questionElement = document.getElementById("question");
         const answersContainer = document.getElementById("answers");
 
-        questionElement.textContent = `Ваш результат: ${score} из ${filteredQuestions.length} правильных ответов!`;
+        if (currentQuestion >= filteredQuestions.length) {
+            showResult();
+            return;
+        }
+
+        const currentQ = filteredQuestions[currentQuestion];
+        questionElement.textContent = currentQ.question;
+
         answersContainer.innerHTML = "";
-        const retryButton = document.createElement("button");
-        retryButton.classList.add("answer-button");
-        retryButton.textContent = "Попробовать снова";
-        retryButton.addEventListener('click', chooseDifficulty);
-        answersContainer.appendChild(retryButton);
+        currentQ.answers.forEach(answer => {
+            const button = document.createElement("button");
+            button.classList.add("answer-button");
+            button.textContent = answer;
+            button.addEventListener('click', () => checkAnswer(answer));
+            answersContainer.appendChild(button);
+        });
+
+        startTimer(); // Запускаем таймер на этот вопрос
     }
 
-    // Инициализация начала игры
-    document.getElementById("start-button").addEventListener('click', startGame);
-</script>
+    function checkAnswer(answer) {
+        const currentQ = filteredQuestions[currentQuestion];
+        if (answer === currentQ.correctAnswer) {
+            score++;
+        }
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+
+        // Проверяем, является ли текущий вопрос последним
+        if (currentQuestion >= filteredQuestions.length) {
+            showResult(); // Показываем результат
+            return;
+        } else {
+            showQuestion(); // Переходим к следующему вопросу
+        }
+    }
+
+    function showResult() {
+        const questionElement = document.getElementById("question");
+        const answersContainer = document.getElementById("answers");
+        const timerElement = document.getElementById("timer");
+
+        // Останавливаем таймер, если он еще не остановлен
+        clearTimeout(timer);
+
+        questionElement.textContent = `Игра окончена! Ваш счёт: ${score} из ${filteredQuestions.length}`;
+        answersContainer.innerHTML = `<button class="answer-button" onclick="restartGame()">Играть снова</button>`;
+        timerElement.textContent = ""; // Убираем таймер
+    }
+
+    function restartGame() {
+        startGame();
+    }
+
+    // Главное меню
+    document.getElementById('start-button').addEventListener('click', startGame);
+    </script>
+</body>
+</html>
