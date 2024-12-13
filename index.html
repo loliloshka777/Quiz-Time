@@ -91,144 +91,182 @@
 
     <div class="container" id="quiz-container">
         <p class="question" id="question">Готовы начать квиз?</p>
-        <div class="answers">
-            <button class="answer-button" onclick="startQuiz()">Да, начинаем!</button>
-            <button class="answer-button" onclick="findPlayer()">Найти игрока</button> <!-- Кнопка поиска -->
+        <div class="answers" id="answers">
+            <button class="answer-button" id="start-button">Выбрать сложность</button>
         </div>
-        <div id="timer"></div> <!-- Отображение таймера -->
     </div>
 
     <footer>© 2024 QuizTime</footer>
 
     <script>
-        // Глобальные переменные для вопросов, состояния игры и WebSocket
-        let questions = [];
-        let currentQuestion = 0;
-        let score = 0;
-        let timer;
-        let timeLeft = 10;
-        let socket;
+    // Инициализация всех переменных
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft;
+    let difficulty = 'easy'; // По умолчанию лёгкий
+    let category = ''; // Для хранения выбранной категории
+    let filteredQuestions = []; // Для хранения отфильтрованных вопросов
 
-        // Функция для подключения к WebSocket
-        function connectWebSocket() {
-            socket = new WebSocket('ws://' + window.location.host + '/ws/quizgame/');
-
-            socket.onopen = function(event) {
-                console.log("WebSocket соединение установлено");
-            };
-
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.message) {
-                    console.log("Получено сообщение: ", data.message);
-                    // Тут будет логика, чтобы получать сообщения, например, вопросы, от другого игрока
-                }
-            };
-
-            socket.onerror = function(event) {
-                console.error("Ошибка WebSocket: ", event);
-            };
-
-            socket.onclose = function(event) {
-                console.log("WebSocket соединение закрыто");
-            };
+    // Загружаем вопросы с GitHub
+    async function loadQuestions() {
+        const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/refs/heads/main/questions.json";
+        const response = await fetch(url);
+        if (response.ok) {
+            const data = await response.json();
+            questions = data.questions; // Заменили на правильный формат
+        } else {
+            console.error("Ошибка загрузки вопросов.");
         }
 
-        // Функция для поиска игрока
-        function findPlayer() {
-            connectWebSocket();
-            alert("Ищем других игроков...");
-            socket.send(JSON.stringify({ "message": "Ищем игрока..." }));
+        // Если вопросы не загружены, выводим сообщение
+        if (questions.length === 0) {
+            alert("Ошибка загрузки вопросов. Попробуйте позже.");
+        }
+    }
+
+    // Инициализация игры
+    async function startGame() {
+        await loadQuestions(); // Загружаем вопросы перед запуском игры
+        if (questions.length === 0) {
+            alert("Ошибка загрузки вопросов.");
+            return;
+        }
+        chooseDifficulty();
+    }
+
+    // Выбор сложности
+    function chooseDifficulty() {
+        const difficultyMenu = `
+            <button class="answer-button" id="easy-button">Легкий</button>
+            <button class="answer-button" id="medium-button">Средний</button>
+            <button class="answer-button" id="hard-button">Сложный</button>
+        `;
+        document.getElementById("question").innerHTML = 'Выберите сложность:';
+        document.getElementById("answers").innerHTML = difficultyMenu;
+
+        // Привязываем события к кнопкам
+        document.getElementById("easy-button").addEventListener('click', () => chooseCategory('easy'));
+        document.getElementById("medium-button").addEventListener('click', () => chooseCategory('medium'));
+        document.getElementById("hard-button").addEventListener('click', () => chooseCategory('hard'));
+    }
+
+    // Выбор категории
+    function chooseCategory(difficultyLevel) {
+        difficulty = difficultyLevel;
+        const categories = ['Наука', 'Спорт', 'История']; // Пример категорий
+        let categoryMenu = 'Выберите тему: <br>';
+
+        categories.forEach(cat => {
+            categoryMenu += `<button class="answer-button" id="category-${cat}">${cat}</button><br>`;
+        });
+
+        document.getElementById("question").innerHTML = categoryMenu;
+        document.getElementById("answers").innerHTML = '';
+
+        // Привязываем события к кнопкам категорий
+        categories.forEach(cat => {
+            document.getElementById(`category-${cat}`).addEventListener('click', () => startQuiz(difficulty, cat));
+        });
+    }
+
+    // Запуск игры
+    async function startQuiz(difficultyLevel, chosenCategory) {
+        category = chosenCategory;
+        difficulty = difficultyLevel;
+
+        // Фильтруем вопросы по выбранной категории
+        filteredQuestions = questions.filter(q => q.category === category);
+
+        // Если вопросов нет в выбранной категории
+        if (filteredQuestions.length === 0) {
+            alert(`Вопросы для категории ${category} не найдены!`);
+            return;
         }
 
-        // Функция для начала игры
-        async function startQuiz() {
-            await loadQuestions();  // Загружаем вопросы перед началом
+        // Очищаем предыдущие данные
+        currentQuestion = 0;
+        score = 0;
 
-            if (questions.length === 0) {
-                alert("Ошибка загрузки вопросов.");
-                return;
-            }
-
-            currentQuestion = 0;
-            score = 0;
-            timeLeft = 10;
-            startTimer();
-            showQuestion();
+        // Устанавливаем таймер в зависимости от сложности
+        switch (difficulty) {
+            case 'easy':
+                timeLeft = 20;
+                break;
+            case 'medium':
+                timeLeft = 15;
+                break;
+            case 'hard':
+                timeLeft = 10;
+                break;
         }
 
-        // Таймер игры
-        function startTimer() {
-            const timerElement = document.getElementById("timer");
-            timer = setInterval(() => {
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    timerElement.textContent = "Время закончилось";
-                    showResult();
-                } else {
-                    timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
-                    timeLeft--;
-                }
-            }, 1000);
-        }
+        startTimer();
+        showQuestion();
+    }
 
-        // Показать вопрос
-        function showQuestion() {
-            const questionElement = document.getElementById("question");
-            const answersContainer = document.querySelector(".answers");
-
-            if (currentQuestion >= questions.length) {
+    // Запускаем таймер
+    function startTimer() {
+        const timerElement = document.getElementById("timer");
+        timer = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timerElement.textContent = "Время закончилось";
                 showResult();
-                return;
-            }
-
-            const currentQ = questions[currentQuestion];
-            questionElement.textContent = currentQ.question;
-
-            answersContainer.innerHTML = "";
-            currentQ.answers.forEach(answer => {
-                const button = document.createElement("button");
-                button.classList.add("answer-button");
-                button.textContent = answer;
-                button.onclick = () => checkAnswer(answer, currentQ.correctAnswer);
-                answersContainer.appendChild(button);
-            });
-        }
-
-        // Проверка ответа
-        function checkAnswer(answer, correctAnswer) {
-            if (answer === correctAnswer) {
-                score++;
-            }
-            currentQuestion++;
-            showQuestion();
-        }
-
-        // Показать результат
-        function showResult() {
-            const questionElement = document.getElementById("question");
-            const answersContainer = document.querySelector(".answers");
-
-            questionElement.textContent = `Ваш результат: ${score} из ${questions.length} правильных ответов!`;
-            answersContainer.innerHTML = "";
-            const retryButton = document.createElement("button");
-            retryButton.classList.add("answer-button");
-            retryButton.textContent = "Попробовать снова";
-            retryButton.onclick = startQuiz;
-            answersContainer.appendChild(retryButton);
-        }
-
-        // Загружаем вопросы с GitHub
-        async function loadQuestions() {
-            const url = "https://raw.githubusercontent.com/loliloshka777/Quiz-Time/refs/heads/main/questions.json";
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                questions = data.questions;
             } else {
-                console.error("Ошибка загрузки вопросов.");
+                timerElement.textContent = `Оставшееся время: ${timeLeft} секунд`;
+                timeLeft--;
             }
-        }
-    </script>
-</body>
-</html>
+        }, 1000);
+    }
+
+    // Показать вопрос
+    function showQuestion() {
+    const questionElement = document.getElementById("question");
+    const answersContainer = document.getElementById("answers");
+
+    if (currentQuestion >= filteredQuestions.length) {
+        showResult();
+        return;
+    }
+
+    const currentQ = filteredQuestions[currentQuestion]; // Берём текущий вопрос
+    questionElement.textContent = currentQ.question; // Используем currentQ.question
+
+    answersContainer.innerHTML = "";
+    currentQ.answers.forEach(answer => { // Используем currentQ.answers
+        const button = document.createElement("button");
+        button.classList.add("answer-button");
+        button.textContent = answer;
+        button.addEventListener('click', () => checkAnswer(answer));
+        answersContainer.appendChild(button);
+    });
+}
+
+function checkAnswer(answer) {
+    const currentQ = filteredQuestions[currentQuestion]; // Берём текущий вопрос
+    if (answer === currentQ.correctAnswer) { // Используем currentQ.correctAnswer
+        score++;
+    }
+    currentQuestion++;
+    showQuestion();
+}
+
+    // Показать результат
+    function showResult() {
+        const questionElement = document.getElementById("question");
+        const answersContainer = document.getElementById("answers");
+
+        questionElement.textContent = `Ваш результат: ${score} из ${filteredQuestions.length} правильных ответов!`;
+        answersContainer.innerHTML = "";
+        const retryButton = document.createElement("button");
+        retryButton.classList.add("answer-button");
+        retryButton.textContent = "Попробовать снова";
+        retryButton.addEventListener('click', chooseDifficulty);
+        answersContainer.appendChild(retryButton);
+    }
+
+    // Инициализация начала игры
+    document.getElementById("start-button").addEventListener('click', startGame);
+</script>
